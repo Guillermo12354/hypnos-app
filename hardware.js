@@ -301,7 +301,7 @@ function initBlueprint3D() {
   });
 }
 
-window.addEventListener('DOMContentLoaded', injectHardwareSection);
+injectHardwareSection();
 
 function buildAudioModule() {
   const g = new THREE.Group();
@@ -525,7 +525,7 @@ function initBlueprint3D() {
   });
 }
 
-window.addEventListener('DOMContentLoaded', injectHardwareSection);
+injectHardwareSection();
 
 function buildAudioModule() {
   const g = new THREE.Group();
@@ -749,4 +749,4 @@ function initBlueprint3D() {
   });
 }
 
-window.addEventListener('DOMContentLoaded', injectHardwareSection);
+injectHardwareSection();
