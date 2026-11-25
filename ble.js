@@ -8,26 +8,12 @@ window.addEventListener('DOMContentLoaded', () => {
     '0000feea-0000-1000-8000-00805f9b34fb',
     '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
     '0000fee0-0000-1000-8000-00805f9b34fb',
-    '0000fff0-0000-1000-8000-00805f9b34fb',
-    '0000ff00-0000-1000-8000-00805f9b34fb',
-    '00000af0-0000-1000-8000-00805f9b34fb',
-    '00001910-0000-1000-8000-00805f9b34fb',
     '000055ff-0000-1000-8000-00805f9b34fb',
     '000056ff-0000-1000-8000-00805f9b34fb',
     '0000d0ff-3c17-d293-8e48-14fe2e4da212',
-    '00006006-0000-1000-8000-00805f9b34fb',
-    '0000ffe0-0000-1000-8000-00805f9b34fb',
-    '0000ae00-0000-1000-8000-00805f9b34fb',
-    'f0080001-0451-4000-b000-000000000000'
-  ];
-
-  // Comandos corregidos (longitud exacta 0x06 para MoYoung/Tefiti + WearFit)
-  const HR_CMDS = [
-    [0xFE, 0xEA, 0x10, 0x06, 0x6B, 0x01],
-    [0xFE, 0xEA, 0x10, 0x06, 0x69, 0x01],
-    [0xFE, 0xEA, 0x10, 0x05, 0x69],
-    [0xAB, 0x00, 0x04, 0xFF, 0x31, 0x09, 0x01],
-    [0xAB, 0x00, 0x04, 0xFF, 0x31, 0x0A, 0x01]
+    '0000fee7-0000-1000-8000-00805f9b34fb',
+    '0000fff0-0000-1000-8000-00805f9b34fb',
+    '0000ff00-0000-1000-8000-00805f9b34fb'
   ];
 
   function pushBpm(bpm) {
@@ -39,19 +25,28 @@ window.addEventListener('DOMContentLoaded', () => {
     return false;
   }
 
-  async function writeBytes(c, arr) {
-    const d = new Uint8Array(arr);
-    try {
-      if (c.properties.writeWithoutResponse) await c.writeValueWithoutResponse(d);
-      else if (c.properties.write) await c.writeValue(d);
-    } catch (_) {}
+  function extractBpmFromPacket(c, dv, b) {
+    if (c.uuid.includes('2a37') && b.length >= 2) {
+      return (b[0] & 1) ? dv.getUint16(1, true) : b[1];
+    }
+    // Paquetes tipo [e5, 11, 00, 52] donde el último byte o byte de datos trae el BPM
+    if (b.length >= 4 && b[0] === 0xe5 && b[3] >= 45 && b[3] <= 185) {
+      return b[3];
+    }
+    if (b[0] === 0xFE && b[1] === 0xEA && b.length >= 6) return b[5];
+    if (b[0] === 0xAB && b[4] === 0x31 && b.length >= 7) return b[6];
+    // Respaldo genérico: busca un byte plausible de pulso si el paquete es corto (3 a 8 bytes)
+    if (b.length >= 3 && b.length <= 8) {
+      for (let i = b.length - 1; i >= 1; i--) {
+        if (b[i] >= 50 && b[i] <= 165) return b[i];
+      }
+    }
+    return null;
   }
 
   async function connectDevice(device) {
-    let gotPacket = false;
     let batText = '';
-    const writeChars = [];
-    const ids = [];
+    let gotBpm = false;
 
     btnBle.textContent = `⌚ ${device.name || 'E19'}`;
     btnBle.classList.add('active');
@@ -61,52 +56,38 @@ window.addEventListener('DOMContentLoaded', () => {
     const services = await server.getPrimaryServices();
 
     for (const svc of services) {
-      ids.push(svc.uuid.slice(4, 8));
       const chars = await svc.getCharacteristics();
       for (const c of chars) {
         if (c.uuid.includes('2a19') && c.properties.read) {
           const v = await c.readValue();
           batText = ` · 🔋${v.getUint8(0)}%`;
         }
-        if (c.properties.write || c.properties.writeWithoutResponse) writeChars.push(c);
         if (c.properties.notify || c.properties.indicate) {
           try {
             await c.startNotifications();
             c.addEventListener('characteristicvaluechanged', e => {
-              gotPacket = true;
               const dv = e.target.value;
               const b = Array.from({ length: dv.byteLength }, (_, i) => dv.getUint8(i));
               const hex = b.slice(0, 7).map(x => x.toString(16).padStart(2, '0')).join(' ');
+              const bpm = extractBpmFromPacket(c, dv, b);
 
-              let ok = false;
-              if (c.uuid.includes('2a37')) ok = pushBpm((b[0] & 1) ? dv.getUint16(1, true) : b[1]);
-              else if (b[0] === 0xFE && b[1] === 0xEA && b.length >= 6) ok = pushBpm(b[5]);
-              else if (b[0] === 0xAB && b[4] === 0x31 && b.length >= 7) ok = pushBpm(b[6]);
-
-              bleStatus.textContent = ok ? `E19 en vivo${batText}` : `E19${batText} [${hex}]`;
+              if (bpm && pushBpm(bpm)) {
+                gotBpm = true;
+                bleStatus.textContent = `E19 en vivo${batText} [${hex}]`;
+              } else if (!gotBpm) {
+                bleStatus.textContent = `E19${batText} · mide pulso [${hex}]`;
+              }
             });
           } catch (_) {}
         }
       }
     }
 
-    bleStatus.textContent = `Activando sensor E19${batText}...`;
-    for (const c of writeChars) {
-      for (const cmd of HR_CMDS) {
-        await writeBytes(c, cmd);
-        await new Promise(r => setTimeout(r, 120));
-      }
+    if (!gotBpm) {
+      bleStatus.textContent = `E19${batText} · mide pulso en el reloj`;
     }
-
-    // Límite de 5 segundos para nunca quedarse colgado
-    setTimeout(() => {
-      if (!gotPacket) {
-        bleStatus.textContent = `E19${batText} · IDs:${ids.join(',')} (sin eco HR)`;
-      }
-    }, 5000);
   }
 
-  // Intento automático al abrir la app si ya fue vinculado antes
   if (navigator.bluetooth && navigator.bluetooth.getDevices) {
     navigator.bluetooth.getDevices().then(devs => {
       const e19 = devs.find(d => /E19/i.test(d.name || ''));
