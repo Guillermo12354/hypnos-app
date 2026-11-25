@@ -1,12 +1,12 @@
 (() => {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  // Buscar la tarjeta de Guía Nocturna IA
-  const panels = Array.from(document.querySelectorAll('.panel'));
-  const aiPanel = panels.find(p => {
-    const h = p.querySelector('h2, h3');
-    return h && /gu[ií]a nocturna|ia/i.test(h.textContent);
-  });
+  // Buscar la tarjeta de Guía Nocturna IA de forma segura
+  const anyAiInput = document.querySelector('input[placeholder*="sueño" i], input[placeholder*="cuesta" i], #ai-input');
+  let aiPanel = anyAiInput ? anyAiInput.closest('section, .panel, .card') : null;
+  if (!aiPanel) {
+    aiPanel = Array.from(document.querySelectorAll('section, .panel')).find(p => /gu[ií]a nocturna/i.test(p.textContent));
+  }
   if (!aiPanel) return;
 
   const aiInput = aiPanel.querySelector('input[type="text"], input:not([type="password"]):not([type="checkbox"]), textarea');
@@ -66,7 +66,7 @@
     <div class="orb-caption" id="orb-caption">Toca la esfera para hablar con Hypnos</div>
   `;
 
-  const header = aiPanel.querySelector('.panel-header');
+  const header = aiPanel.querySelector('.panel-header') || aiPanel.firstElementChild;
   if (header && header.nextSibling) {
     aiPanel.insertBefore(orbWrap, header.nextSibling);
   } else {
