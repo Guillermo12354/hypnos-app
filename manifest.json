@@ -1,0 +1,12 @@
+{
+  "name": "Hypnos App — SleepBox",
+  "short_name": "Hypnos",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0B112B",
+  "theme_color": "#0B112B",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

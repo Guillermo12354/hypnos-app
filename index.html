@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B112B" />
+  <title>Hypnos App — SleepBox</title>
+  <link rel="icon" href="./icon.svg" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1 class="brand-title">SleepBox</h1>
+        <span class="brand-sub">HYPNOS LABS</span>
+      </div>
+      <div class="status-pills">
+        <span class="pill active" id="pill-3d">● 3D Activo</span>
+        <button class="pill" id="btn-ble">⌚ Conectar E19</button>
+      </div>
+    </header>
+
+    <!-- Simulador 3D -->
+    <section class="viewer-card">
+      <div id="canvas-container"></div>
+      <div class="viewer-overlay">
+        <span class="mono-tag" id="led-status-text">Ámbar Crepúsculo · 75%</span>
+        <span class="hint">Arrastra 360°</span>
+      </div>
+    </section>
+
+    <!-- Asistente IA Real (Gemini) -->
+    <section class="panel ai-panel">
+      <div class="panel-header">
+        <h2>Guía Nocturna IA</h2>
+        <button class="text-btn" id="btn-toggle-key">🔑 API Key</button>
+      </div>
+
+      <div class="key-box hidden" id="key-box">
+        <input type="password" id="api-key-input" placeholder="Pega tu Gemini API Key aquí..." />
+        <button class="primary-btn small" id="btn-save-key">Guardar</button>
+      </div>
+
+      <div class="ai-bubble" id="ai-response">
+        Cuéntame cómo te sientes hoy y ajustaré la luz y el sonido de tu SleepBox automáticamente.
+      </div>
+
+      <div class="quick-chips">
+        <button class="chip" data-prompt="Tuve un día pesado y no puedo desconectar la mente">Mente acelerada</button>
+        <button class="chip" data-prompt="Quiero preparar mi habitación para dormir profundo ya">Dormir ya</button>
+        <button class="chip" data-prompt="Analiza mi pulso actual y sugiere una rutina tranquila">Analizar pulso</button>
+      </div>
+
+      <form class="ai-form" id="ai-form">
+        <input type="text" id="ai-input" placeholder="Ej. Me cuesta conciliar el sueño..." autocomplete="off" />
+        <button type="submit" class="primary-btn" id="ai-send-btn">Enviar</button>
+      </form>
+    </section>
+
+    <!-- Biometría Reloj E19 -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Biometría · Reloj E19</h2>
+        <span class="mono-tag" id="ble-status">Modo manual</span>
+      </div>
+      <div class="bpm-row">
+        <div class="bpm-display">
+          <span class="bpm-number" id="bpm-value">68</span>
+          <span class="bpm-unit">BPM</span>
+        </div>
+        <div class="slider-group flex-1">
+          <div class="slider-label">
+            <span>Ajuste / Simulación BPM</span>
+            <span class="mono-val" id="bpm-state-label">Relajado</span>
+          </div>
+          <input type="range" id="bpm-slider" min="48" max="125" value="68" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Control de Iluminación -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Iluminación Circadiana</h2>
+        <label class="switch-label">
+          <input type="checkbox" id="toggle-breath" checked />
+          <span>Respiración</span>
+        </label>
+      </div>
+
+      <div class="preset-row">
+        <button class="preset-btn active" data-color="#F2A663" data-name="Ámbar Crepúsculo">
+          <span class="dot" style="background:#F2A663"></span> Ámbar
+        </button>
+        <button class="preset-btn" data-color="#5E6AD2" data-name="Índigo Onírico">
+          <span class="dot" style="background:#5E6AD2"></span> Índigo
+        </button>
+        <button class="preset-btn" data-color="#EEF2FF" data-name="Niebla Lunar">
+          <span class="dot" style="background:#EEF2FF"></span> Lunar
+        </button>
+        <button class="preset-btn" data-color="#000000" data-name="Apagado">
+          <span class="dot" style="background:#111; border:1px solid #444"></span> Off
+        </button>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Intensidad LED</span>
+          <span class="mono-val" id="brightness-val">75%</span>
+        </div>
+        <input type="range" id="brightness-slider" min="0" max="100" value="75" />
+      </div>
+    </section>
+
+    <!-- Control de Audio Ambiental -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Sonido Ambiental</h2>
+        <span class="mono-tag" id="audio-status">Silencio</span>
+      </div>
+
+      <div class="preset-row">
+        <button class="audio-btn active" data-sound="off" data-label="Silencio">Silencio</button>
+        <button class="audio-btn" data-sound="rain" data-label="Lluvia suave">Lluvia</button>
+        <button class="audio-btn" data-sound="brown" data-label="Ruido café">Ruido café</button>
+        <button class="audio-btn" data-sound="warm" data-label="Calma 174Hz">Calma</button>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Volumen</span>
+          <span class="mono-val" id="volume-val">40%</span>
+        </div>
+        <input type="range" id="volume-slider" min="0" max="100" value="40" />
+      </div>
+    </section>
+
+    <!-- Historial de Rutinas -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Registros Nocturnos</h2>
+        <button class="text-btn" id="btn-save-session">+ Guardar noche</button>
+      </div>
+      <ul class="history-list" id="history-list"></ul>
+    </section>
+  </div>
+
+  <script type="module" src="./simulator3d.js"></script>
+  <script src="./audio.js"></script>
+  <script src="./voice.js"></script>
+  <script type="module" src="./app.js"></script>
+  <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");</script>
+</body>
+</html>
