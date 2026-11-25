@@ -55,7 +55,7 @@ const BOM_ITEMS = [
 ];
 
 function injectHardwareSection() {
-  const shell = document.querySelector('.app-shell');
+  const shell = document.querySelector('.app-shell') || document.querySelector('main') || document.body;
   if (!shell) return;
 
   const section = document.createElement('section');
@@ -385,7 +385,7 @@ function buildCase() {
 }
 
 function injectHardwareSection() {
-  const shell = document.querySelector('.app-shell');
+  const shell = document.querySelector('.app-shell') || document.querySelector('main') || document.body;
   if (!shell) return;
   const section = document.createElement('section');
   section.className = 'panel';
@@ -609,7 +609,7 @@ function buildCase() {
 }
 
 function injectHardwareSection() {
-  const shell = document.querySelector('.app-shell');
+  const shell = document.querySelector('.app-shell') || document.querySelector('main') || document.body;
   if (!shell) return;
   const section = document.createElement('section');
   section.className = 'panel';
