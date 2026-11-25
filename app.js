@@ -74,7 +74,7 @@ function updateBpmUI(bpm) {
 }
 bpmSlider.addEventListener('input', () => updateBpmUI(Number(bpmSlider.value)));
 
-btnBle.addEventListener('click', async () => {
+if(false) btnBle.addEventListener('click', async () => {
   if (!navigator.bluetooth) { bleStatus.textContent = 'Usa Chrome para BLE'; return; }
   try {
     bleStatus.textContent = 'Buscando E19...';
