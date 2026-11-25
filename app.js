@@ -79,8 +79,14 @@ btnBle.addEventListener('click', async () => {
   try {
     bleStatus.textContent = 'Buscando E19...';
     const device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: 'E19' }, { services: ['heart_rate'] }],
-      optionalServices: ['heart_rate']
+      acceptAllDevices: true,
+      optionalServices: [
+        'heart_rate',
+        'battery_service',
+        '0000fff0-0000-1000-8000-00805f9b34fb',
+        '0000fee0-0000-1000-8000-00805f9b34fb',
+        '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
+      ]
     });
     btnBle.textContent = `⌚ ${device.name || 'E19'}`;
     btnBle.classList.add('active');
